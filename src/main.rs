@@ -90,7 +90,7 @@ fn main() {
         };
 
     let mut data = Vec::new();
-    input_file.read(&mut data).unwrap();
+    input_file.read_to_end(&mut data).unwrap();
 
     let data_type = if arg.is_present("data_type_text"){
         DataKind::Text
