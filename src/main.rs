@@ -19,6 +19,11 @@ fn init<'a>()->ArgMatches<'a>{
         .required(true)
         .takes_value(true)
         .help("Data you want to convert to QR code (file path)"))
+    .arg(Arg::with_name("string")
+        .long("string")
+        .short("s")
+        .required(false)
+        .help("text string you want to convert to QR code"))
     .arg(Arg::with_name("qrcode")
         .long("out")
         .short("o")
@@ -59,6 +64,17 @@ fn data2qr(data:&[u8],kind:DataKind) -> std::result::Result<String,Box<std::erro
     }
 }
 
+fn load_to_file(input_filename:&str)->std::result::Result<Vec<u8>,Box<std::error::Error>>{
+    let mut input_file = OpenOptions::new()
+        .read(true).write(false)
+        .create_new(false)
+        .open(input_filename)?;
+
+    let mut data = Vec::new();
+    input_file.read_to_end(&mut data).unwrap();
+    Ok(data)
+}
+
 fn main() {
     let arg = init();
     let input_filename = arg.value_of("data").unwrap();
@@ -68,16 +84,11 @@ fn main() {
         "qrcode.svg"
     };
 
-    let mut input_file = match OpenOptions::new()
-        .read(true).write(false)
-        .create_new(false)
-        .open(input_filename){
-            Ok(fp)=>fp,
-            Err(e)=>{
-                eprintln!("input file opening error : {}",e);
-                return;
-            }
-        };
+    let data = if arg.is_present("string"){
+        input_filename.as_bytes().iter().cloned().collect()
+    }else{
+        load_to_file(input_filename).unwrap()
+    };
     let mut out_file = match OpenOptions::new()
         .read(true).write(true)
         .create_new(true)
@@ -88,9 +99,6 @@ fn main() {
                 return;
             }
         };
-
-    let mut data = Vec::new();
-    input_file.read_to_end(&mut data).unwrap();
 
     let data_type = if arg.is_present("data_type_text"){
         DataKind::Text
@@ -108,4 +116,5 @@ fn main() {
         }
     };
     out_file.write_all(svg.as_bytes()).unwrap();
+    
 }
