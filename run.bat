@@ -1,0 +1,1 @@
+qrcode.exe -d %1 -o qrcode.svg

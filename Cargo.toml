@@ -4,5 +4,5 @@ version = "0.1.0"
 authors = ["segfo <k.segfo@gmail.com>"]
 
 [dependencies]
-qrcodegen = "1.4.0"
+qrcodegen = "1.8.0"
 clap = "2.31"

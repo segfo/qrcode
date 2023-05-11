@@ -3,11 +3,13 @@ extern crate clap;
 use clap::*;
 use qrcodegen::QrCode;
 use qrcodegen::QrCodeEcc;
+
 use std::fs::OpenOptions;
 use std::io::Write;
 use std::io::Read;
 mod data_type;
 use data_type::*;
+#[cfg(test)]
 mod test;
 
 fn init<'a>()->ArgMatches<'a>{
@@ -46,17 +48,17 @@ fn init<'a>()->ArgMatches<'a>{
 
 }
 
-fn text2qr(data:&str) -> std::result::Result<String,Box<std::error::Error>> {
+fn text2qr(data:&str) -> std::result::Result<String,Box<dyn std::error::Error>> {
 	let qr: QrCode = QrCode::encode_text(data,  QrCodeEcc::High)?;
-	Ok(qr.to_svg_string(1))
+	Ok(to_svg_string(&qr,1))
 }
 
-fn binary2qr(data:&[u8]) -> std::result::Result<String,Box<std::error::Error>> {
+fn binary2qr(data:&[u8]) -> std::result::Result<String,Box<dyn std::error::Error>> {
 	let qr: QrCode = QrCode::encode_binary(data,  QrCodeEcc::High)?;
-	Ok(qr.to_svg_string(1))
+	Ok(to_svg_string(&qr,1))
 }
 
-fn data2qr(data:&[u8],kind:DataKind) -> std::result::Result<String,Box<std::error::Error>>{
+fn data2qr(data:&[u8],kind:DataKind) -> std::result::Result<String,Box<dyn std::error::Error>>{
     if kind == DataKind::Text {
         text2qr(&std::str::from_utf8(&data).unwrap())
     }else{
@@ -64,7 +66,7 @@ fn data2qr(data:&[u8],kind:DataKind) -> std::result::Result<String,Box<std::erro
     }
 }
 
-fn load_to_file(input_filename:&str)->std::result::Result<Vec<u8>,Box<std::error::Error>>{
+fn load_to_file(input_filename:&str)->std::result::Result<Vec<u8>,Box<dyn std::error::Error>>{
     let mut input_file = OpenOptions::new()
         .read(true).write(false)
         .create_new(false)
@@ -91,7 +93,7 @@ fn main() {
     };
     let mut out_file = match OpenOptions::new()
         .read(true).write(true)
-        .create_new(true)
+        .create_new(false)
         .open(out_filename){
             Ok(fp)=>fp,
             Err(e)=>{
@@ -117,4 +119,29 @@ fn main() {
     };
     out_file.write_all(svg.as_bytes()).unwrap();
     
+}
+
+fn to_svg_string(qr: &QrCode, border: i32) -> String {
+	assert!(border >= 0, "Border must be non-negative");
+	let mut result = String::new();
+	result += "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
+	result += "<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 1.1//EN\" \"http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd\">\n";
+	let dimension = qr.size().checked_add(border.checked_mul(2).unwrap()).unwrap();
+	result += &format!(
+		"<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" viewBox=\"0 0 {0} {0}\" stroke=\"none\">\n", dimension);
+	result += "\t<rect width=\"100%\" height=\"100%\" fill=\"#FFFFFF\"/>\n";
+	result += "\t<path d=\"";
+	for y in 0 .. qr.size() {
+		for x in 0 .. qr.size() {
+			if qr.get_module(x, y) {
+				if x != 0 || y != 0 {
+					result += " ";
+				}
+				result += &format!("M{},{}h1v1h-1z", x + border, y + border);
+			}
+		}
+	}
+	result += "\" fill=\"#000000\"/>\n";
+	result += "</svg>\n";
+	result
 }
