@@ -93,7 +93,7 @@ fn main() {
     };
     let mut out_file = match OpenOptions::new()
         .read(true).write(true)
-        .create(false)
+        .create(true)
         .open(out_filename){
             Ok(fp)=>fp,
             Err(e)=>{
